@@ -136,90 +136,84 @@ function formatDate(dateStr) {
 </script>
 
 <template>
-  <div id="app">
-    <div v-if="loading">兼容性报告加载中...</div>
-    <div v-else-if="error" class="error">{{ error }}</div>
-    <div v-else>
-      <!-- 顶部导航 -->
-      <el-menu
-        mode="horizontal"
-        :default-active="activeTab"
-        @select="(key) => activeTab = key"
-      >
-        <el-menu-item index="overview">全局概览</el-menu-item>
-        <el-menu-item index="kernel">Kernel 兼容性</el-menu-item>
-        <el-menu-item index="userspace">Userspace 动态库</el-menu-item>
-        <el-menu-item index="rpm">RPM 软件包</el-menu-item>
-      </el-menu>
+  <div v-if="loading">兼容性报告加载中...</div>
+  <div v-else-if="error" class="error">{{ error }}</div>
+  <div v-else>
+    <!-- 顶部导航 -->
+    <el-menu mode="horizontal" :default-active="activeTab" @select="(key) => activeTab = key">
+      <el-menu-item index="overview">全局概览</el-menu-item>
+      <el-menu-item index="kernel">Kernel 兼容性</el-menu-item>
+      <el-menu-item index="userspace">Userspace 动态库</el-menu-item>
+      <el-menu-item index="rpm">RPM 软件包</el-menu-item>
+    </el-menu>
 
-      <!-- 全局概览面板 -->
-      <div v-show="activeTab === 'overview'" class="overview">
-        <el-row :gutter="20" class="metadata-row">
-          <el-col :span="12">
-            <el-card>
-              <template #header><span>OS A</span></template>
-              <p><strong>名称:</strong> {{ osA?.metadata?.name || 'N/A' }}</p>
-              <p><strong>版本:</strong> {{ osA?.metadata?.version || 'N/A' }}</p>
-              <p><strong>架构:</strong> {{ osA?.metadata?.architecture || 'N/A' }}</p>
-              <p><strong>采集时间:</strong> {{ formatDate(osA?.metadata?.collectedAt) }}</p>
-            </el-card>
-          </el-col>
-          <el-col :span="12">
-            <el-card>
-              <template #header><span>OS B</span></template>
-              <p><strong>名称:</strong> {{ osB?.metadata?.name || 'N/A' }}</p>
-              <p><strong>版本:</strong> {{ osB?.metadata?.version || 'N/A' }}</p>
-              <p><strong>架构:</strong> {{ osB?.metadata?.architecture || 'N/A' }}</p>
-              <p><strong>采集时间:</strong> {{ formatDate(osB?.metadata?.collectedAt) }}</p>
-            </el-card>
-          </el-col>
-        </el-row>
+    <!-- 全局概览面板 -->
+    <div v-show="activeTab === 'overview'" class="overview">
+      <el-row :gutter="20" class="metadata-row">
+        <el-col :span="12">
+          <el-card>
+            <template #header><span>OS A</span></template>
+            <p><strong>名称:</strong> {{ osA?.metadata?.name || 'N/A' }}</p>
+            <p><strong>版本:</strong> {{ osA?.metadata?.version || 'N/A' }}</p>
+            <p><strong>架构:</strong> {{ osA?.metadata?.architecture || 'N/A' }}</p>
+            <p><strong>采集时间:</strong> {{ formatDate(osA?.metadata?.collectedAt) }}</p>
+          </el-card>
+        </el-col>
+        <el-col :span="12">
+          <el-card>
+            <template #header><span>OS B</span></template>
+            <p><strong>名称:</strong> {{ osB?.metadata?.name || 'N/A' }}</p>
+            <p><strong>版本:</strong> {{ osB?.metadata?.version || 'N/A' }}</p>
+            <p><strong>架构:</strong> {{ osB?.metadata?.architecture || 'N/A' }}</p>
+            <p><strong>采集时间:</strong> {{ formatDate(osB?.metadata?.collectedAt) }}</p>
+          </el-card>
+        </el-col>
+      </el-row>
 
-        <el-row :gutter="20" class="stats-row">
-          <el-col :span="6">
-            <el-card class="stats-card conflict">
-              <div class="stats-number">{{ stats.kernelCrcConflict }}</div>
-              <div class="stats-label">内核 CRC 冲突数</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card class="stats-card warning">
-              <div class="stats-number">{{ stats.userspaceApiMissing }}</div>
-              <div class="stats-label">用户态 API 缺失数</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card class="stats-card info">
-              <div class="stats-number">{{ stats.rpmDowngrade }}</div>
-              <div class="stats-label">RPM 包降级数</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card class="stats-card success">
-              <div class="stats-number">{{ stats.rpmUpgrade }}</div>
-              <div class="stats-label">RPM 包升级数</div>
-            </el-card>
-          </el-col>
-        </el-row>
+      <el-row :gutter="20" class="stats-row">
+        <el-col :span="6">
+          <el-card class="stats-card conflict">
+            <div class="stats-number">{{ stats.kernelCrcConflict }}</div>
+            <div class="stats-label">内核 CRC 冲突数</div>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="stats-card warning">
+            <div class="stats-number">{{ stats.userspaceApiMissing }}</div>
+            <div class="stats-label">用户态 API 缺失数</div>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="stats-card info">
+            <div class="stats-number">{{ stats.rpmDowngrade }}</div>
+            <div class="stats-label">RPM 包降级数</div>
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="stats-card success">
+            <div class="stats-number">{{ stats.rpmUpgrade }}</div>
+            <div class="stats-label">RPM 包升级数</div>
+          </el-card>
+        </el-col>
+      </el-row>
 
-        <el-row>
-          <el-col :span="24">
-            <el-card>
-              <div id="radarChart" style="width: 100%; height: 400px;"></div>
-            </el-card>
-          </el-col>
-        </el-row>
-      </div>
-
-      <!-- Kernel 兼容性详情页 -->
-      <KernelDetail v-show="activeTab === 'kernel'" />
-
-      <!-- Userspace 动态库详情页 -->
-      <UserspaceDetail v-show="activeTab === 'userspace'" />
-
-      <!-- RPM 软件包详情页 -->
-      <RPMDetail v-show="activeTab === 'rpm'" />
+      <el-row>
+        <el-col :span="24">
+          <el-card>
+            <div id="radarChart" style="width: 100%; height: 400px;"></div>
+          </el-card>
+        </el-col>
+      </el-row>
     </div>
+
+    <!-- Kernel 兼容性详情页 -->
+    <KernelDetail v-show="activeTab === 'kernel'" />
+
+    <!-- Userspace 动态库详情页 -->
+    <UserspaceDetail v-show="activeTab === 'userspace'" />
+
+    <!-- RPM 软件包详情页 -->
+    <RPMDetail v-show="activeTab === 'rpm'" />
   </div>
 </template>
 
@@ -230,16 +224,45 @@ function formatDate(dateStr) {
   padding: 20px;
 }
 
-.error { color: red; padding: 20px; }
+.error {
+  color: red;
+  padding: 20px;
+}
 
-.metadata-row, .stats-row { margin-bottom: 20px; }
+.metadata-row,
+.stats-row {
+  margin-bottom: 20px;
+}
 
-.stats-card { text-align: center; }
-.stats-card.conflict { border-top: 3px solid #f56c6c; }
-.stats-card.warning { border-top: 3px solid #e6a23c; }
-.stats-card.info { border-top: 3px solid #409eff; }
-.stats-card.success { border-top: 3px solid #67c23a; }
+.stats-card {
+  text-align: center;
+}
 
-.stats-number { font-size: 36px; font-weight: bold; color: #333; margin: 10px 0; }
-.stats-label { font-size: 14px; color: #666; }
+.stats-card.conflict {
+  border-top: 3px solid #f56c6c;
+}
+
+.stats-card.warning {
+  border-top: 3px solid #e6a23c;
+}
+
+.stats-card.info {
+  border-top: 3px solid #409eff;
+}
+
+.stats-card.success {
+  border-top: 3px solid #67c23a;
+}
+
+.stats-number {
+  font-size: 36px;
+  font-weight: bold;
+  color: #333;
+  margin: 10px 0;
+}
+
+.stats-label {
+  font-size: 14px;
+  color: #666;
+}
 </style>
