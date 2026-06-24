@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/yourorg/os-checker/internal/model"
+	"atomgit.com/openeuler/os-compat-analyzer/internal/model"
 )
 
 // rpmExecutor 是用于执行 rpm 命令的函数类型，便于测试时 mock。

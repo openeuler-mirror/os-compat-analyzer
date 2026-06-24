@@ -10,11 +10,11 @@
 
 ```bash
 # 1. 在目标机上采集数据，生成标准数据集
-os-checker collect -o ./os_a.json
-os-checker collect -o ./os_b.json
+os-compat-analyzer collect -o ./os_a.json
+os-compat-analyzer collect -o ./os_b.json
 
 # 2. 对比两个数据集，生成可视化前端报告（核心功能）
-os-checker report ./os_a.json ./os_b.json -o ./compat_report.html
+os-compat-analyzer report ./os_a.json ./os_b.json -o ./compat_report.html
 ```
 
 ## 三、 后端核心功能需求 (Golang)

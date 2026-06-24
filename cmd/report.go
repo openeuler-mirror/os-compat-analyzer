@@ -1,4 +1,4 @@
-// Package cmd 定义了 os-checker 命令行工具的命令结构。
+// Package cmd 定义了 os-compat-analyzer 命令行工具的命令结构。
 package cmd
 
 import (
@@ -8,9 +8,9 @@ import (
 	"log"
 	"os"
 
+	"atomgit.com/openeuler/os-compat-analyzer/internal/differ"
+	"atomgit.com/openeuler/os-compat-analyzer/internal/model"
 	"github.com/spf13/cobra"
-	"github.com/yourorg/os-checker/internal/differ"
-	"github.com/yourorg/os-checker/internal/model"
 )
 
 //go:embed templates/report.html
@@ -27,7 +27,7 @@ var reportCmd = &cobra.Command{
 	Long: `读取两个由 collect 命令生成的 JSON 快照文件，进行差异对比，并生成可视化 HTML 报告。
 
 示例：
-  os-checker report os_a.json os_b.json -o report.html`,
+  os-compat-analyzer report os_a.json os_b.json -o report.html`,
 	Args: cobra.ExactArgs(2),
 	RunE: runReport,
 }

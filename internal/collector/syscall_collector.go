@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yourorg/os-checker/internal/model"
+	"atomgit.com/openeuler/os-compat-analyzer/internal/model"
 )
 
 // CollectSyscalls 采集当前内核支持的所有系统调用。

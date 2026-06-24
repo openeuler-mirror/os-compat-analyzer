@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/yourorg/os-checker/internal/model"
+	"atomgit.com/openeuler/os-compat-analyzer/internal/model"
 )
 
 // CollectUserspaceSymbols 采集用户态动态库的符号信息。

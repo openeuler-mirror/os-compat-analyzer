@@ -1,4 +1,4 @@
-module github.com/yourorg/os-checker
+module atomgit.com/openeuler/os-compat-analyzer
 
 go 1.21
 
