@@ -126,7 +126,7 @@ func generateHTMLReport(diffResult *differ.DiffResult, osA, osB *model.OSSnapsho
 // replacePlaceholder 替换 HTML 中的占位符为 JSON 数据
 func replacePlaceholder(html, jsonData string) string {
 	// 替换 INJECT_DATA_HERE 占位符
-	html = replaceOnce(html, "<!-- INJECT_DATA_HERE -->", jsonData)
+	html = replaceOnce(html, `"INJECT_DATA_HERE"`, jsonData)
 
 	// 同时兼容 window.__INITIAL_STATE__ 方式
 	stateScript := fmt.Sprintf("window.__INITIAL_STATE__ = %s;", jsonData)
@@ -206,7 +206,7 @@ func getDefaultTemplate() string {
         }
     </script>
     <script id="data" type="application/json">
-    <!-- INJECT_DATA_HERE -->
+    "INJECT_DATA_HERE"
     </script>
 </body>
 </html>`
