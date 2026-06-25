@@ -3,7 +3,7 @@ package collector
 import (
 	"testing"
 
-	"github.com/yourorg/os-checker/internal/model"
+	"atomgit.com/openeuler/os-compat-analyzer/internal/model"
 )
 
 // TestCollectRPMPackages_Mock 测试 CollectRPMPackages 函数，使用 mock 命令输出。
@@ -69,41 +69,41 @@ coreutils 8.22 el7 x86_64
 // TestParseRPMPackages 测试 parseRPMPackages 函数的解析逻辑。
 func TestParseRPMPackages(t *testing.T) {
 	tests := []struct {
-		name       string
-		output     string
-		wantCount  int
-		wantFirst  model.RPMPackage
-		wantErr    bool
+		name      string
+		output    string
+		wantCount int
+		wantFirst model.RPMPackage
+		wantErr   bool
 	}{
 		{
-			name:   "normal output",
-			output: "glibc 2.17 el7 x86_64\nopenssl 1.0.2k el7 x86_64\n",
+			name:      "normal output",
+			output:    "glibc 2.17 el7 x86_64\nopenssl 1.0.2k el7 x86_64\n",
 			wantCount: 2,
 			wantFirst: model.RPMPackage{
 				Name: "glibc", Version: "2.17", Release: "el7", Arch: "x86_64",
 			},
 		},
 		{
-			name:     "empty output",
-			output:   "",
+			name:      "empty output",
+			output:    "",
 			wantCount: 0,
 		},
 		{
-			name:     "output with only empty lines",
-			output:   "\n\n\n",
+			name:      "output with only empty lines",
+			output:    "\n\n\n",
 			wantCount: 0,
 		},
 		{
-			name:     "malformed line skipped",
-			output:   "glibc 2.17 el7 x86_64\ninvalid\nopenssl 1.0.2k el7 x86_64\n",
+			name:      "malformed line skipped",
+			output:    "glibc 2.17 el7 x86_64\ninvalid\nopenssl 1.0.2k el7 x86_64\n",
 			wantCount: 2,
 			wantFirst: model.RPMPackage{
 				Name: "glibc", Version: "2.17", Release: "el7", Arch: "x86_64",
 			},
 		},
 		{
-			name:     "multiple spaces between fields",
-			output:   "pkg1  1.0  el7  x86_64\n",
+			name:      "multiple spaces between fields",
+			output:    "pkg1  1.0  el7  x86_64\n",
 			wantCount: 1,
 			wantFirst: model.RPMPackage{
 				Name: "pkg1", Version: "1.0", Release: "el7", Arch: "x86_64",
@@ -132,7 +132,8 @@ func TestParseRPMPackages(t *testing.T) {
 // 该测试需要 root 权限且系统安装了 rpm 命令。
 //
 // 在真实环境下运行方式（需要 root 权限）：
-//   go test -v -run TestCollectRPMPackages_RealCommand ./internal/collector/
+//
+//	go test -v -run TestCollectRPMPackages_RealCommand ./internal/collector/
 func TestCollectRPMPackages_RealCommand(t *testing.T) {
 	t.Skip("skipping real command test, run with -tags integration to execute")
 

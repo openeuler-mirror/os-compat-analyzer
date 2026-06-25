@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/yourorg/os-checker/cmd"
+	"atomgit.com/openeuler/os-compat-analyzer/cmd"
 )
 
 func main() {

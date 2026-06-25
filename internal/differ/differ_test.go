@@ -3,16 +3,16 @@ package differ
 import (
 	"testing"
 
-	"github.com/yourorg/os-checker/internal/model"
+	"atomgit.com/openeuler/os-compat-analyzer/internal/model"
 )
 
 // TestCompareVersion 测试版本比较
 func TestCompareVersion(t *testing.T) {
 	tests := []struct {
-		name      string
-		versionA  string
-		versionB  string
-		wantSign  int // >0, <0, or 0
+		name     string
+		versionA string
+		versionB string
+		wantSign int // >0, <0, or 0
 	}{
 		{"equal", "2.17", "2.17", 0},
 		{"A newer than B", "2.18", "2.17", 1},
@@ -134,7 +134,7 @@ func TestCompareUserspaceSymbols(t *testing.T) {
 			{SoPath: "/lib64/libc.so.6", SymbolName: "malloc", SymbolVersion: "GLIBC_2.17"},
 			{SoPath: "/lib64/libc.so.6", SymbolName: "free", SymbolVersion: "GLIBC_2.17"},
 			{SoPath: "/lib64/libc.so.6", SymbolName: "pthread_create", SymbolVersion: "GLIBC_2.17"}, // 降级
-			{SoPath: "/lib64/libc.so.6", SymbolName: "calloc", SymbolVersion: "GLIBC_2.17"},        // 新增
+			{SoPath: "/lib64/libc.so.6", SymbolName: "calloc", SymbolVersion: "GLIBC_2.17"},         // 新增
 		},
 	}
 
@@ -179,9 +179,9 @@ func TestCompareRPMPackages(t *testing.T) {
 
 	osB := &model.OSSnapshot{
 		RPMPackages: []model.RPMPackage{
-			{Name: "glibc", Version: "2.17", Release: "el7", Arch: "x86_64"}, // 相同
+			{Name: "glibc", Version: "2.17", Release: "el7", Arch: "x86_64"},    // 相同
 			{Name: "openssl", Version: "1.1.1", Release: "el7", Arch: "x86_64"}, // 升级
-			{Name: "curl", Version: "7.61", Release: "el7", Arch: "x86_64"},    // 新增
+			{Name: "curl", Version: "7.61", Release: "el7", Arch: "x86_64"},     // 新增
 		},
 	}
 

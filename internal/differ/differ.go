@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yourorg/os-checker/internal/model"
+	"atomgit.com/openeuler/os-compat-analyzer/internal/model"
 )
 
 // DiffResult 表示两个 OS 快照的差异结果
@@ -131,10 +131,10 @@ type RPMPackageModified struct {
 // Compare 比较两个 OSSnapshot，返回差异结果
 func Compare(osA, osB *model.OSSnapshot) *DiffResult {
 	return &DiffResult{
-		SyscallsDiff:        compareSyscalls(osA.Syscalls, osB.Syscalls),
-		KernelSymbolsDiff:   compareKernelSymbols(osA.KernelSymbols, osB.KernelSymbols),
+		SyscallsDiff:         compareSyscalls(osA.Syscalls, osB.Syscalls),
+		KernelSymbolsDiff:    compareKernelSymbols(osA.KernelSymbols, osB.KernelSymbols),
 		UserspaceSymbolsDiff: compareUserspaceSymbols(osA.UserspaceSymbols, osB.UserspaceSymbols),
-		RPMPackagesDiff:     compareRPMPackages(osA.RPMPackages, osB.RPMPackages),
+		RPMPackagesDiff:      compareRPMPackages(osA.RPMPackages, osB.RPMPackages),
 	}
 }
 

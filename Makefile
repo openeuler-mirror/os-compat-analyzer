@@ -1,4 +1,4 @@
-# Makefile for os-checker
+# Makefile for os-compat-analyzer
 
 .PHONY: all frontend build clean
 
@@ -12,7 +12,7 @@ frontend:
 
 # 后端编译：使用 embed 嵌入前端模板
 build:
-	go build -ldflags="-s -w" -o os-checker .
+	go build -ldflags="-s -w" -o os-compat-analyzer .
 
 # 开发模式：运行前端开发服务器
 dev:
@@ -20,7 +20,7 @@ dev:
 
 # 清理构建产物
 clean:
-	rm -f os-checker
+	rm -f os-compat-analyzer
 	cd web && rm -rf dist
 
 # 完整清理：清理所有构建产物

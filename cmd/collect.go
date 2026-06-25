@@ -1,4 +1,4 @@
-// Package cmd 定义了 os-checker 命令行工具的命令结构。
+// Package cmd 定义了 os-compat-analyzer 命令行工具的命令结构。
 package cmd
 
 import (
@@ -9,9 +9,9 @@ import (
 	"os/exec"
 	"time"
 
+	"atomgit.com/openeuler/os-compat-analyzer/internal/collector"
+	"atomgit.com/openeuler/os-compat-analyzer/internal/model"
 	"github.com/spf13/cobra"
-	"github.com/yourorg/os-checker/internal/collector"
-	"github.com/yourorg/os-checker/internal/model"
 )
 
 var (
@@ -31,7 +31,7 @@ var collectCmd = &cobra.Command{
   - RPM 包列表
 
 示例：
-  os-checker collect -o os_a.json`,
+  os-compat-analyzer collect -o os_a.json`,
 	RunE: runCollect,
 }
 
@@ -54,9 +54,9 @@ func runCollect(cmd *cobra.Command, args []string) error {
 
 	// 并发采集各类数据
 	type collectResult struct {
-		name  string
-		data  interface{}
-		err   error
+		name string
+		data interface{}
+		err  error
 	}
 
 	resultChan := make(chan collectResult, 4)

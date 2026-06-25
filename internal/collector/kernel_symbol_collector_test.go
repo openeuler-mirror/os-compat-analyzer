@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/yourorg/os-checker/internal/model"
+	"atomgit.com/openeuler/os-compat-analyzer/internal/model"
 )
 
 // TestFindSymversFile 测试查找 symvers 文件
@@ -61,10 +61,10 @@ func TestParseSymversFile(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	tests := []struct {
-		name        string
-		content     string
-		wantCount   int
-		wantFirst   model.KernelSymbol
+		name      string
+		content   string
+		wantCount int
+		wantFirst model.KernelSymbol
 	}{
 		{
 			name: "normal format",
@@ -89,8 +89,8 @@ func TestParseSymversFile(t *testing.T) {
 			},
 		},
 		{
-			name: "empty content",
-			content: ``,
+			name:      "empty content",
+			content:   ``,
 			wantCount: 0,
 		},
 		{
