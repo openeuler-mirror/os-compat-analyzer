@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 const activeTab = ref('syscall')
 
@@ -118,7 +118,6 @@ defineExpose({
                 </template>
                 <el-table
                   :data="syscallData.onlyInA || []"
-                  height="500"
                   :virtual-scrollbar="true"
                 >
                   <el-table-column prop="number" label="编号" width="100" />
@@ -133,7 +132,6 @@ defineExpose({
                 </template>
                 <el-table
                   :data="syscallData.onlyInB || []"
-                  height="500"
                   :virtual-scrollbar="true"
                 >
                   <el-table-column prop="number" label="编号" width="100" />
@@ -146,7 +144,7 @@ defineExpose({
       </el-tab-pane>
 
       <el-tab-pane label="Kernel Symbols" name="kernel">
-        <div class="tab-content">
+        <div class="tab-content kernel-content">
           <!-- 筛选器 -->
           <div class="filter-bar">
             <span>筛选: </span>
@@ -162,14 +160,16 @@ defineExpose({
           </div>
 
           <!-- 内核符号表格 - 使用 el-table-v2 虚拟化 -->
-          <el-table-v2
-            :columns="kernelSymbolColumns"
-            :data="filteredKernelSymbols"
-            :width="1200"
-            :height="500"
-            :row-height="40"
-            :row-class-name="getRowClass"
-          >
+          <div class="table-wrapper">
+            <el-table-v2
+              :columns="kernelSymbolColumns"
+              :data="filteredKernelSymbols"
+              :width="1200"
+              height="100%"
+              :row-height="40"
+              :row-class-name="getRowClass"
+              class="symbol-table"
+            >
             <template #cell="{ column, rowData }">
               <template v-if="column.key === 'name'">
                 {{ rowData.name }}
@@ -192,7 +192,8 @@ defineExpose({
                 </el-tag>
               </template>
             </template>
-          </el-table-v2>
+            </el-table-v2>
+          </div>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -202,10 +203,71 @@ defineExpose({
 <style scoped>
 .kernel-page {
   padding: 20px;
+  height: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.kernel-page > .el-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.kernel-page > .el-tabs :deep(.el-tabs__content) {
+  flex: 1;
+  overflow: hidden;
+  background: var(--el-bg-color, #fff);
+}
+
+.kernel-page > .el-tabs :deep(.el-tab-pane) {
+  height: 100%;
 }
 
 .tab-content {
   padding: 10px 0;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-content > .el-row {
+  flex: 1;
+  min-height: 0;
+}
+
+.tab-content > .el-row > .el-col {
+  height: 100%;
+  min-height: 0;
+}
+
+.tab-content .el-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-content :deep(.el-table),
+.tab-content :deep(.el-table-v2) {
+  flex: 1;
+}
+
+.kernel-content {
+  flex: 1;
+  min-height: 0;
+}
+
+.kernel-content .table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.kernel-content .symbol-table {
+  height: 100%;
 }
 
 .filter-bar {

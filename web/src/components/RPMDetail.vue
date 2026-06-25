@@ -172,7 +172,6 @@ function sortMethod(a, b, col) {
       <!-- 表格 -->
       <el-table
         :data="filteredPackages"
-        height="550"
         :default-sort="{ prop: 'name', order: 'ascending' }"
       >
         <el-table-column prop="name" label="包名" width="250" sortable />
@@ -206,6 +205,25 @@ function sortMethod(a, b, col) {
 <style scoped>
 .rpm-page {
   padding: 20px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.rpm-page > .el-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.rpm-page > .el-card :deep(.el-card__body) {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.rpm-page :deep(.el-table) {
+  flex: 1;
 }
 
 .header-row {

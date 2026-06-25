@@ -168,8 +168,8 @@ const filterOptions = [
             ]"
             :data="filteredSymbols"
             :width="800"
-            :height="500"
             :row-height="40"
+            class="symbol-table"
           >
             <template #cell="{ column, rowData }">
               <template v-if="column.key === 'symbolName'">
@@ -211,10 +211,42 @@ const filterOptions = [
 <style scoped>
 .userspace-page {
   padding: 20px;
+  height: 100%;
+  box-sizing: border-box;
 }
 
-.tree-card {
-  height: 600px;
+.userspace-page > .el-row {
+  height: 100%;
+  min-height: 0;
+}
+
+.userspace-page > .el-row > .el-col {
+  height: 100%;
+  min-height: 0;
+}
+
+.tree-card,
+.el-col:nth-child(2) > .el-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-card :deep(.el-card__body),
+.el-col:nth-child(2) > .el-card :deep(.el-card__body) {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-card :deep(.el-tree) {
+  flex: 1;
+  overflow: auto;
+}
+
+.symbol-table {
+  flex: 1;
 }
 
 .tree-node {
@@ -233,5 +265,6 @@ const filterOptions = [
   padding: 10px;
   background: #f5f7fa;
   border-radius: 4px;
+  flex-shrink: 0;
 }
 </style>
