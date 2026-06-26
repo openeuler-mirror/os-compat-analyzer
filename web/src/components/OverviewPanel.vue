@@ -148,10 +148,10 @@ onMounted(() => {
       </el-col>
     </el-row>
 
-    <el-row>
+    <el-row class="chart-row">
       <el-col :span="24">
-        <el-card>
-          <div id="radarChart" style="width: 100%; height: 400px;"></div>
+        <el-card class="chart-card">
+          <div id="radarChart" style="width: 100%; height: 100%;"></div>
         </el-card>
       </el-col>
     </el-row>
@@ -160,12 +160,39 @@ onMounted(() => {
 
 <style scoped>
 .overview {
-  padding: 20px;
+  margin-top: 10px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .metadata-row,
 .stats-row {
   margin-bottom: 20px;
+}
+
+.chart-row {
+  flex: 1;
+  min-height: 0;
+}
+
+.chart-row .el-col {
+  height: 100%;
+}
+
+.chart-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-card :deep(.el-card__body) {
+  flex: 1;
+  min-height: 0;
+}
+
+#radarChart {
+  height: 100%;
 }
 
 .stats-card {

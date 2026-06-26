@@ -1,14 +1,45 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const diffData = ref(null)
 const loading = ref(true)
 const selectedNode = ref(null)
 const filterType = ref('modified')
+const tableWidth = ref(800)
+const tableHeight = ref(400)
+const tableWrapperRef = ref(null)
+
+function updateTableSize() {
+  if (tableWrapperRef.value) {
+    tableWidth.value = tableWrapperRef.value.clientWidth
+    tableHeight.value = tableWrapperRef.value.clientHeight
+  }
+}
+
+let resizeObserver = null
 
 // 页面加载时获取数据
 onMounted(() => {
   loadData()
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => {
+      updateTableSize()
+    })
+    if (tableWrapperRef.value) {
+      resizeObserver.observe(tableWrapperRef.value)
+    }
+  } else {
+    updateTableSize()
+    window.addEventListener('resize', updateTableSize)
+  }
+})
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+  } else {
+    window.removeEventListener('resize', updateTableSize)
+  }
 })
 
 function loadData() {
@@ -159,18 +190,20 @@ const filterOptions = [
           </div>
 
           <!-- 符号表格 -->
-          <el-table-v2
-            :columns="[
-              { key: 'symbolName', label: '符号名', width: 250 },
-              { key: 'versionInA', label: 'OS A 版本', width: 200 },
-              { key: 'versionInB', label: 'OS B 版本', width: 200 },
-              { key: 'status', label: '状态', width: 150 }
-            ]"
-            :data="filteredSymbols"
-            :width="800"
-            :row-height="40"
-            class="symbol-table"
-          >
+          <div ref="tableWrapperRef" class="table-wrapper">
+            <el-table-v2
+              :columns="[
+                { key: 'symbolName', label: '符号名', width: 250 },
+                { key: 'versionInA', label: 'OS A 版本', width: 200 },
+                { key: 'versionInB', label: 'OS B 版本', width: 200 },
+                { key: 'status', label: '状态', width: 150 }
+              ]"
+              :data="filteredSymbols"
+              :width="tableWidth"
+              :height="tableHeight"
+              :row-height="40"
+              class="symbol-table"
+            >
             <template #cell="{ column, rowData }">
               <template v-if="column.key === 'symbolName'">
                 {{ rowData.symbolName || rowData.SymbolName }}
@@ -201,7 +234,8 @@ const filterOptions = [
                 </el-tag>
               </template>
             </template>
-          </el-table-v2>
+            </el-table-v2>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -210,7 +244,7 @@ const filterOptions = [
 
 <style scoped>
 .userspace-page {
-  padding: 20px;
+  margin-top: 10px;
   height: 100%;
   box-sizing: border-box;
 }
@@ -245,8 +279,25 @@ const filterOptions = [
   overflow: auto;
 }
 
+.table-wrapper {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
 .symbol-table {
   flex: 1;
+}
+
+.table-wrapper :deep(.el-table-v2__empty) {
+  width: 100% !important;
+}
+
+.table-wrapper :deep(.el-empty) {
+  width: 100%;
 }
 
 .tree-node {

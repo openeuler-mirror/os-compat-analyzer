@@ -202,7 +202,7 @@ defineExpose({
 
 <style scoped>
 .kernel-page {
-  padding: 20px;
+  margin-top: 10px;
   height: 100%;
   min-height: 100%;
   box-sizing: border-box;
@@ -219,7 +219,6 @@ defineExpose({
 .kernel-page > .el-tabs :deep(.el-tabs__content) {
   flex: 1;
   overflow: hidden;
-  background: var(--el-bg-color, #fff);
 }
 
 .kernel-page > .el-tabs :deep(.el-tab-pane) {
@@ -283,5 +282,9 @@ defineExpose({
 
 :deep(.el-table-v2__row) {
   cursor: pointer;
+}
+
+:deep(.el-table-v2__empty) {
+  background-color: #ffffff;
 }
 </style>

@@ -63,7 +63,9 @@ onMounted(() => {
     </el-menu>
 
     <!-- 全局概览面板 -->
-    <OverviewPanel v-show="activeTab === 'overview'" :diff-data="diffData" :os-a="osA" :os-b="osB" />
+    <div v-show="activeTab === 'overview'" class="detail-page">
+      <OverviewPanel :diff-data="diffData" :os-a="osA" :os-b="osB" />
+    </div>
 
     <!-- Kernel 兼容性详情页 -->
     <div v-show="activeTab === 'kernel'" class="detail-page">
@@ -86,7 +88,6 @@ onMounted(() => {
 #app {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 20px;
 }
 
 .error {
@@ -97,6 +98,5 @@ onMounted(() => {
 .detail-page {
   height: calc(100vh - 120px);
   min-height: 500px;
-  color: #ebeff4;
 }
 </style>
