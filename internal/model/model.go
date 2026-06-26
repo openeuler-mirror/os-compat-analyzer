@@ -39,6 +39,9 @@ type OSMetadata struct {
 
 	// CollectedAt 采集时间
 	CollectedAt time.Time `json:"collectedAt"`
+
+	// User 执行采集的用户名
+	User string `json:"user"`
 }
 
 // Syscall 表示一个系统调用。

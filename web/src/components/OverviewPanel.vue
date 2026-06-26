@@ -104,18 +104,20 @@ onMounted(() => {
       <el-col :span="12">
         <el-card>
           <template #header><span>OS A</span></template>
-          <p><strong>名称:</strong> {{ osA?.metadata?.name || 'N/A' }}</p>
-          <p><strong>版本:</strong> {{ osA?.metadata?.version || 'N/A' }}</p>
+          <p><strong>OS版本:</strong> {{ osA?.metadata?.name || 'N/A' }}</p>
+          <p><strong>kernel:</strong> {{ osA?.metadata?.version || 'N/A' }}</p>
           <p><strong>架构:</strong> {{ osA?.metadata?.architecture || 'N/A' }}</p>
+          <p><strong>采集用户:</strong> {{ osA?.metadata?.user || 'N/A' }}</p>
           <p><strong>采集时间:</strong> {{ formatDate(osA?.metadata?.collectedAt) }}</p>
         </el-card>
       </el-col>
       <el-col :span="12">
         <el-card>
           <template #header><span>OS B</span></template>
-          <p><strong>名称:</strong> {{ osB?.metadata?.name || 'N/A' }}</p>
-          <p><strong>版本:</strong> {{ osB?.metadata?.version || 'N/A' }}</p>
+          <p><strong>OS版本:</strong> {{ osB?.metadata?.name || 'N/A' }}</p>
+          <p><strong>kernel:</strong> {{ osB?.metadata?.version || 'N/A' }}</p>
           <p><strong>架构:</strong> {{ osB?.metadata?.architecture || 'N/A' }}</p>
+          <p><strong>采集用户:</strong> {{ osB?.metadata?.user || 'N/A' }}</p>
           <p><strong>采集时间:</strong> {{ formatDate(osB?.metadata?.collectedAt) }}</p>
         </el-card>
       </el-col>

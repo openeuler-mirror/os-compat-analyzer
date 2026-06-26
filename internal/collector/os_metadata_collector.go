@@ -4,6 +4,7 @@ package collector
 import (
 	"os"
 	"os/exec"
+	"os/user"
 	"strings"
 	"time"
 
@@ -33,19 +34,27 @@ func CollectOSMetadata() model.OSMetadata {
 		architecture = string(out)
 	}
 
-	return collectOSMetadataWithInputs(osRelease, kernelVersion, architecture)
+	// 获取当前用户
+	var currentUser string
+	if u, err := user.Current(); err == nil && u.Username != "" {
+		currentUser = u.Username
+	} else {
+		currentUser = os.Getenv("USER")
+	}
+
+	return collectOSMetadataWithInputs(osRelease, kernelVersion, architecture, currentUser)
 }
 
 // collectOSMetadataWithInputs 根据给定的原始输入构建 OS 元数据。
 // 该函数主要用于测试，允许注入 mock 的输入数据。
-func collectOSMetadataWithInputs(osRelease, kernelVersion, architecture string) model.OSMetadata {
+func collectOSMetadataWithInputs(osRelease, kernelVersion, architecture, currentUser string) model.OSMetadata {
 	metadata := model.OSMetadata{
 		CollectedAt: time.Now(),
 	}
 
 	// 获取 OS 名称
 	if idx := findKey(osRelease, "PRETTY_NAME"); idx >= 0 {
-		metadata.Name = extractValue(osRelease[idx:])
+		metadata.Name = extractValue(osRelease[idx:], "PRETTY_NAME")
 	}
 
 	// 获取内核版本
@@ -53,6 +62,9 @@ func collectOSMetadataWithInputs(osRelease, kernelVersion, architecture string) 
 
 	// 获取架构
 	metadata.Architecture = strings.TrimSpace(architecture)
+
+	// 获取当前用户
+	metadata.User = strings.TrimSpace(currentUser)
 
 	return metadata
 }
@@ -75,20 +87,21 @@ func findKey(text, key string) int {
 	return -1
 }
 
-// extractValue 从 key=value 行中提取值。
-// 只取到当前行结束，并去除首尾的引号。
-func extractValue(line string) string {
-	idx := -1
-	for i, c := range line {
-		if c == '=' {
-			idx = i
-			break
-		}
-	}
-	if idx < 0 {
+// extractValue 从 text 中 key=value 配对提取值。
+// text 必须以 key 开头；只取到当前行结束，并去除首尾的引号。
+func extractValue(text, key string) string {
+	if key == "" {
 		return ""
 	}
-	value := line[idx+1:]
+	if !strings.HasPrefix(text, key) {
+		return ""
+	}
+
+	// 跳过 key 和 '='
+	value := text[len(key):]
+	value = strings.TrimLeftFunc(value, func(r rune) bool {
+		return r == '=' || r == ' ' || r == '\t'
+	})
 
 	// 只取当前行
 	for i, c := range value {
