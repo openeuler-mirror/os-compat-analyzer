@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
-	"time"
 
 	"atomgit.com/openeuler/os-compat-analyzer/internal/collector"
 	"atomgit.com/openeuler/os-compat-analyzer/internal/model"
@@ -49,7 +47,7 @@ func runCollect(cmd *cobra.Command, args []string) error {
 
 	// 创建快照结构
 	snapshot := &model.OSSnapshot{
-		Metadata: collectMetadata(),
+		Metadata: collector.CollectOSMetadata(),
 	}
 
 	// 并发采集各类数据
@@ -139,67 +137,6 @@ func runCollect(cmd *cobra.Command, args []string) error {
 
 	// 输出结果
 	return writeOutput(snapshot, outputFile)
-}
-
-// collectMetadata 收集 OS 元数据
-func collectMetadata() model.OSMetadata {
-	metadata := model.OSMetadata{
-		CollectedAt: time.Now(),
-	}
-
-	// 获取 OS 名称
-	if data, err := os.ReadFile("/etc/os-release"); err == nil {
-		content := string(data)
-		if idx := findKey(content, "PRETTY_NAME"); idx >= 0 {
-			metadata.Name = extractValue(content[idx:])
-		}
-	}
-
-	// 获取内核版本
-	if data, err := os.ReadFile("/proc/version"); err == nil {
-		metadata.Version = string(data)
-	}
-
-	// 获取架构
-	cmd := exec.Command("uname", "-m")
-	if out, err := cmd.Output(); err == nil {
-		metadata.Architecture = string(out)
-	}
-
-	return metadata
-}
-
-// findKey 在文本中查找 key
-func findKey(text, key string) int {
-	for i := range text {
-		if len(text)-i < len(key) {
-			break
-		}
-		if text[i:i+len(key)] == key {
-			return i
-		}
-	}
-	return -1
-}
-
-// extractValue 从 key=value 行中提取值
-func extractValue(line string) string {
-	idx := -1
-	for i, c := range line {
-		if c == '=' {
-			idx = i
-			break
-		}
-	}
-	if idx < 0 {
-		return ""
-	}
-	value := line[idx+1:]
-	// 去除引号
-	if len(value) >= 2 && value[0] == '"' && value[len(value)-1] == '"' {
-		value = value[1 : len(value)-1]
-	}
-	return value
 }
 
 // writeOutput 将快照写入文件或 stdout
