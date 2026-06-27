@@ -37,10 +37,21 @@ const tableWidth = ref(800)
 const tableHeight = ref(400)
 const tableWrapperRef = ref(null)
 
+// Syscall 表格尺寸
+const syscallSearch = ref('')
+const syscallStatusFilter = ref('')
+const syscallTableWidth = ref(800)
+const syscallTableHeight = ref(400)
+const syscallTableRef = ref(null)
+
 function updateTableSize() {
   if (tableWrapperRef.value) {
     tableWidth.value = tableWrapperRef.value.clientWidth
     tableHeight.value = tableWrapperRef.value.clientHeight
+  }
+  if (syscallTableRef.value) {
+    syscallTableWidth.value = syscallTableRef.value.clientWidth
+    syscallTableHeight.value = syscallTableRef.value.clientHeight
   }
 }
 
@@ -56,6 +67,9 @@ onMounted(() => {
     if (tableWrapperRef.value) {
       resizeObserver.observe(tableWrapperRef.value)
     }
+    if (syscallTableRef.value) {
+      resizeObserver.observe(syscallTableRef.value)
+    }
   } else {
     updateTableSize()
     window.addEventListener('resize', updateTableSize)
@@ -70,11 +84,9 @@ onUnmounted(() => {
   }
 })
 
-// 切换到 kernel tab 时重新计算表格尺寸
-watch(activeTab, (val) => {
-  if (val === 'kernel') {
-    nextTick(updateTableSize)
-  }
+// 切换 tab 时重新计算表格尺寸
+watch(activeTab, () => {
+  nextTick(updateTableSize)
 })
 
 function loadData() {
@@ -108,6 +120,66 @@ const syscallData = computed(() => {
   if (!diffData.value?.syscallsDiff) return { onlyInA: [], onlyInB: [] }
   return diffData.value.syscallsDiff
 })
+
+// 合并所有系统调用（仅A有、仅B有）
+const allSyscalls = computed(() => {
+  const data = syscallData.value
+  if (!data) return []
+  const rows = []
+
+  // 仅 A 有
+  ;(data.onlyInA || []).forEach(s => {
+    rows.push({
+      number: s.number,
+      name: s.name,
+      status: '仅A有'
+    })
+  })
+  // 仅 B 有
+  ;(data.onlyInB || []).forEach(s => {
+    rows.push({
+      number: s.number,
+      name: s.name,
+      status: '仅B有'
+    })
+  })
+
+  // 按编号排序
+  rows.sort((a, b) => (a.number ?? 0) - (b.number ?? 0))
+  return rows
+})
+
+// 筛选后的系统调用
+const filteredSyscalls = computed(() => {
+  let data = allSyscalls.value
+
+  // 按名称搜索
+  if (syscallSearch.value) {
+    const search = syscallSearch.value.toLowerCase()
+    data = data.filter(row => row.name.toLowerCase().includes(search))
+  }
+
+  // 按状态筛选
+  if (syscallStatusFilter.value) {
+    data = data.filter(row => row.status === syscallStatusFilter.value)
+  }
+
+  return data
+})
+
+// Syscall 表格列定义
+const syscallColumns = [
+  { key: 'number', dataKey: 'number', title: '编号', width: 200 },
+  { key: 'name', dataKey: 'name', title: '名称', width: 600 },
+  { key: 'status', dataKey: 'status', title: '状态', width: 120 }
+]
+
+// Syscall 状态筛选选项
+const syscallStatusOptions = [
+  { label: '全部', value: '' },
+  { label: '仅A有', value: '仅A有' },
+  { label: '仅B有', value: '仅B有' },
+]
 
 // 内核符号数据
 const kernelSymbolData = computed(() => {
@@ -179,7 +251,7 @@ const filteredKernelSymbols = computed(() => {
 
 // 表格列定义
 const kernelSymbolColumns = [
-  { key: 'name', dataKey: 'name', title: '符号名', width: 250 },
+  { key: 'name', dataKey: 'name', title: '符号名', width: 300 },
   { key: 'module', dataKey: 'module', title: '所属模块', width: 300 },
   { key: 'crcInA', dataKey: 'crcInA', title: 'OS A CRC', width: 150 },
   { key: 'crcInB', dataKey: 'crcInB', title: 'OS B CRC', width: 150 },
@@ -217,37 +289,73 @@ defineExpose({
     <!-- Tab 切换 -->
     <el-tabs v-model="activeTab" type="card">
       <el-tab-pane label="Syscall 列表" name="syscall">
-        <div class="tab-content">
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-card>
-                <template #header>
-                  <span>仅在 OS A 中存在 ({{ syscallData.onlyInA?.length || 0 }})</span>
+        <div class="tab-content kernel-content">
+          <el-card>
+            <template #header>
+              <div class="header-row">
+                <span>系统调用差异详情</span>
+                <span class="stats">共 {{ filteredSyscalls.length }} 条</span>
+              </div>
+            </template>
+
+            <!-- 搜索和筛选 -->
+            <div class="filter-bar">
+              <el-input
+                v-model="syscallSearch"
+                placeholder="搜索系统调用名称..."
+                clearable
+                style="width: 300px;"
+              >
+                <template #prefix>
+                  <el-icon><Search /></el-icon>
                 </template>
-                <el-table
-                  :data="syscallData.onlyInA || []"
-                  :virtual-scrollbar="true"
-                >
-                  <el-table-column prop="number" label="编号" width="100" />
-                  <el-table-column prop="name" label="名称" />
-                </el-table>
-              </el-card>
-            </el-col>
-            <el-col :span="12">
-              <el-card>
-                <template #header>
-                  <span>仅在 OS B 中存在 ({{ syscallData.onlyInB?.length || 0 }})</span>
+              </el-input>
+
+              <el-select
+                v-model="syscallStatusFilter"
+                placeholder="按状态筛选"
+                clearable
+                style="width: 150px; margin-left: 10px;"
+              >
+                <el-option
+                  v-for="item in syscallStatusOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </div>
+
+            <!-- 系统调用表格 -->
+            <div ref="syscallTableRef" class="table-wrapper">
+              <el-table-v2
+                :columns="syscallColumns"
+                :data="filteredSyscalls"
+                :width="syscallTableWidth"
+                :height="syscallTableHeight"
+                :row-height="40"
+                class="symbol-table"
+              >
+                <template #cell="{ column, rowData }">
+                  <template v-if="column.key === 'status'">
+                    <el-tag
+                      v-if="rowData.status === '仅A有' || rowData.status === '仅B有'"
+                      type="warning"
+                      size="small"
+                    >
+                      {{ rowData.status }}
+                    </el-tag>
+                    <el-tag v-else type="info" size="small">
+                      {{ rowData.status }}
+                    </el-tag>
+                  </template>
+                  <template v-else>
+                    <OverflowCell :content="String(rowData[column.dataKey] ?? '')" />
+                  </template>
                 </template>
-                <el-table
-                  :data="syscallData.onlyInB || []"
-                  :virtual-scrollbar="true"
-                >
-                  <el-table-column prop="number" label="编号" width="100" />
-                  <el-table-column prop="name" label="名称" />
-                </el-table>
-              </el-card>
-            </el-col>
-          </el-row>
+              </el-table-v2>
+            </div>
+          </el-card>
         </div>
       </el-tab-pane>
 
@@ -364,27 +472,6 @@ defineExpose({
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-}
-
-.tab-content > .el-row {
-  flex: 1;
-  min-height: 0;
-}
-
-.tab-content > .el-row > .el-col {
-  height: 100%;
-  min-height: 0;
-}
-
-.tab-content .el-card {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.tab-content :deep(.el-table),
-.tab-content :deep(.el-table-v2) {
-  flex: 1;
 }
 
 .kernel-content {
