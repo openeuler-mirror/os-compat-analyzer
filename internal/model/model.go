@@ -133,6 +133,39 @@ func (s OSSnapshot) MarshalJSON() ([]byte, error) {
 	return json.Marshal(output)
 }
 
+// UnmarshalJSON 实现自定义的 JSON 反序列化方法。
+// 与 MarshalJSON 对应，将按 soPath 分组的 userspaceSymbols 还原为扁平的 []UserspaceSymbol。
+func (s *OSSnapshot) UnmarshalJSON(data []byte) error {
+	// 定义与 JSON 输出结构一致的临时结构
+	input := struct {
+		Metadata         OSMetadata             `json:"metadata"`
+		Syscalls         []Syscall              `json:"syscalls"`
+		KernelSymbols    []KernelSymbol         `json:"kernelSymbols"`
+		UserspaceSymbols []UserspaceSymbolGroup `json:"userspaceSymbols"`
+		RPMPackages      []RPMPackage           `json:"rpmPackages"`
+	}{}
+
+	if err := json.Unmarshal(data, &input); err != nil {
+		return err
+	}
+
+	s.Metadata = input.Metadata
+	s.Syscalls = input.Syscalls
+	s.KernelSymbols = input.KernelSymbols
+	s.RPMPackages = input.RPMPackages
+
+	// 将分组的符号展开为扁平列表，并回填 SoPath
+	s.UserspaceSymbols = make([]UserspaceSymbol, 0)
+	for _, group := range input.UserspaceSymbols {
+		for _, sym := range group.Symbols {
+			sym.SoPath = group.SoPath
+			s.UserspaceSymbols = append(s.UserspaceSymbols, sym)
+		}
+	}
+
+	return nil
+}
+
 // RPMPackage 表示一个 RPM 软件包。
 type RPMPackage struct {
 	// Name 包名称（如 "glibc", "openssl"）
