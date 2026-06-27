@@ -165,6 +165,18 @@ func TestCompareUserspaceSymbols(t *testing.T) {
 	if groupDiff.OnlyInB[0].SymbolName != "calloc" {
 		t.Errorf("OnlyInB[0].SymbolName: expected 'calloc', got %s", groupDiff.OnlyInB[0].SymbolName)
 	}
+
+	// 验证 Common (版本相同)
+	if len(groupDiff.Common) != 2 {
+		t.Fatalf("Common: expected 2, got %d", len(groupDiff.Common))
+	}
+	commonNames := map[string]bool{}
+	for _, s := range groupDiff.Common {
+		commonNames[s.SymbolName] = true
+	}
+	if !commonNames["malloc"] || !commonNames["free"] {
+		t.Errorf("Common: expected malloc and free, got %v", commonNames)
+	}
 }
 
 // TestCompareRPMPackages 测试 RPM 包比较

@@ -88,6 +88,9 @@ type UserspaceSymbolGroupDiff struct {
 
 	// Modified 版本发生变化的符号
 	Modified []UserspaceSymbolModified `json:"modified"`
+
+	// Common 在两个 OS 中版本相同的符号
+	Common []model.UserspaceSymbol `json:"common"`
 }
 
 // UserspaceSymbolModified 表示版本发生变化的符号
@@ -285,7 +288,7 @@ func compareUserspaceSymbolGroup(a, b []model.UserspaceSymbol) *UserspaceSymbolG
 		bMap[s.SymbolName] = s
 	}
 
-	var onlyInA, onlyInB []model.UserspaceSymbol
+	var onlyInA, onlyInB, common []model.UserspaceSymbol
 	var modified []UserspaceSymbolModified
 
 	for name, symA := range aMap {
@@ -297,6 +300,9 @@ func compareUserspaceSymbolGroup(a, b []model.UserspaceSymbol) *UserspaceSymbolG
 					VersionInA:      symA.SymbolVersion,
 					VersionInB:      symB.SymbolVersion,
 				})
+			} else {
+				// 版本相同
+				common = append(common, symA)
 			}
 		} else {
 			onlyInA = append(onlyInA, symA)
@@ -312,6 +318,7 @@ func compareUserspaceSymbolGroup(a, b []model.UserspaceSymbol) *UserspaceSymbolG
 		OnlyInA:  onlyInA,
 		OnlyInB:  onlyInB,
 		Modified: modified,
+		Common:   common,
 	}
 }
 
