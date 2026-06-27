@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,6 +16,7 @@ import (
 
 // CollectKernelSymbols 采集内核导出符号及其 CRC 校验值。
 // 该函数按优先级查找 Module.symvers 文件进行解析。
+// 当 Module.symvers 不可用时，回退到 /proc/kallsyms（无 CRC 值）。
 //
 // 参数：
 //   - unameRelease: 内核版本号（如 "3.10.0-1160.el7.x86_64"）
@@ -37,6 +37,18 @@ func CollectKernelSymbols(unameRelease string) ([]model.KernelSymbol, error) {
 	// 按优先级查找 symvers 文件
 	symversPath, err := findSymversFile(unameRelease)
 	if err != nil {
+		// Module.symvers 不可用，尝试 /proc/kallsyms 作为备选
+		kallsymsPath := "/proc/kallsyms"
+		if _, statErr := os.Stat(kallsymsPath); statErr == nil {
+			symbols, parseErr := parseKallsymsFile(kallsymsPath)
+			if parseErr != nil {
+				return nil, fmt.Errorf("Module.symvers not found (%w) and failed to parse /proc/kallsyms: %v", err, parseErr)
+			}
+			if len(symbols) == 0 {
+				return nil, fmt.Errorf("Module.symvers not found and /proc/kallsyms yielded no symbols; note: /proc/kallsyms may show zero addresses without root, try running as root")
+			}
+			return symbols, nil
+		}
 		return nil, err
 	}
 
@@ -80,7 +92,7 @@ func findSymversFile(unameRelease string) (string, error) {
 		return bootSymvers, nil
 	}
 
-	return "", errors.New("Module.symvers not found: please ensure kernel headers are installed or run as root")
+	return "", fmt.Errorf("Module.symvers not found for kernel %s: install kernel-devel (%s-devel) or kernel-headers package, or run as root", unameRelease, unameRelease)
 }
 
 // parseSymversFile 解析 Module.symvers 文件
@@ -140,6 +152,65 @@ func parseSymversFile(path string) ([]model.KernelSymbol, error) {
 			Name:   symbolName,
 			Module: module,
 			CRC:    crc,
+		})
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading %s: %w", path, err)
+	}
+
+	return symbols, nil
+}
+
+// parseKallsymsFile 解析 /proc/kallsyms 文件作为 Module.symvers 不可用时的备选方案。
+// 格式: address type name [module]
+// 注意: kallsyms 不提供 CRC 值，CRC 字段将为空字符串。
+func parseKallsymsFile(path string) ([]model.KernelSymbol, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open %s: %w", path, err)
+	}
+	defer f.Close()
+
+	symbols := make([]model.KernelSymbol, 0)
+	scanner := bufio.NewScanner(f)
+	// kallsyms 行数较多，增大 buffer
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+
+		// 格式: address type name [module]
+		// 使用 Fields 按空白符分割
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+
+		// fields[0] = address, fields[1] = type, fields[2] = name
+		symbolName := fields[2]
+
+		// 跳过编译器生成的噪音符号（ARM mapping symbols、局部标签等）
+		if strings.HasPrefix(symbolName, "$") || strings.HasPrefix(symbolName, ".") {
+			continue
+		}
+
+		// 确定模块名：有 [module] 字段则提取，否则为 vmlinux（内置符号）
+		module := "vmlinux"
+		if len(fields) >= 4 {
+			modField := fields[3]
+			if strings.HasPrefix(modField, "[") && strings.HasSuffix(modField, "]") {
+				module = modField[1 : len(modField)-1]
+			}
+		}
+
+		symbols = append(symbols, model.KernelSymbol{
+			Name:   symbolName,
+			Module: module,
+			CRC:    "", // kallsyms 不提供 CRC
 		})
 	}
 

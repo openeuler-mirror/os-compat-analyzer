@@ -149,6 +149,88 @@ func TestCollectKernelSymbols_Real(t *testing.T) {
 	}
 }
 
+// TestParseKallsymsFile 测试解析 /proc/kallsyms 文件
+func TestParseKallsymsFile(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	tests := []struct {
+		name      string
+		content   string
+		wantCount int
+		checks    []model.KernelSymbol
+	}{
+		{
+			name: "normal with modules",
+			content: `0000000000000000 T _stext
+0000000000000000 t vxlan_find_mac_rcu       [vxlan]
+0000000000000000 T __do_softirq
+0000000000000000 d ext4_write_inode   [ext4]
+`,
+			wantCount: 4,
+			checks: []model.KernelSymbol{
+				{Name: "_stext", Module: "vmlinux", CRC: ""},
+				{Name: "vxlan_find_mac_rcu", Module: "vxlan", CRC: ""},
+				{Name: "__do_softirq", Module: "vmlinux", CRC: ""},
+				{Name: "ext4_write_inode", Module: "ext4", CRC: ""},
+			},
+		},
+		{
+			name: "skip noise symbols",
+			content: `0000000000000000 T _stext
+0000000000000000 t $x   [vxlan]
+0000000000000000 t .Ltmp0   [vxlan]
+0000000000000000 T __do_softirq
+`,
+			wantCount: 2,
+			checks: []model.KernelSymbol{
+				{Name: "_stext", Module: "vmlinux", CRC: ""},
+				{Name: "__do_softirq", Module: "vmlinux", CRC: ""},
+			},
+		},
+		{
+			name:      "empty content",
+			content:   ``,
+			wantCount: 0,
+		},
+		{
+			name: "malformed lines skipped",
+			content: `0000000000000000 T
+0000000000000000 T __do_softirq
+`,
+			wantCount: 1,
+			checks: []model.KernelSymbol{
+				{Name: "__do_softirq", Module: "vmlinux", CRC: ""},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpFile := filepath.Join(tmpDir, "kallsyms_test")
+			os.WriteFile(tmpFile, []byte(tt.content), 0644)
+
+			symbols, err := parseKallsymsFile(tmpFile)
+			if err != nil {
+				t.Fatalf("parseKallsymsFile() error = %v", err)
+			}
+
+			if len(symbols) != tt.wantCount {
+				t.Errorf("got %d symbols, want %d", len(symbols), tt.wantCount)
+			}
+
+			for i, want := range tt.checks {
+				if i >= len(symbols) {
+					t.Errorf("missing symbol at index %d", i)
+					break
+				}
+				if symbols[i] != want {
+					t.Errorf("symbol[%d] = %+v, want %+v", i, symbols[i], want)
+				}
+			}
+		})
+	}
+}
+
 /*
 标准 Module.symvers 文件格式示例：
 
