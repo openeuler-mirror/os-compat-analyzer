@@ -1,16 +1,80 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, defineComponent, h, watch, nextTick } from 'vue'
+import { Search } from '@element-plus/icons-vue'
+import { ElTooltip } from 'element-plus'
+
+// 文本溢出时悬浮显示完整内容
+const OverflowCell = defineComponent({
+  name: 'OverflowCell',
+  props: {
+    content: { type: String, default: '' }
+  },
+  setup(props) {
+    const overflow = ref(false)
+    const handleEnter = (e) => {
+      const el = e.currentTarget
+      overflow.value = el.scrollWidth > el.clientWidth
+    }
+    return () => h(ElTooltip, {
+      content: String(props.content ?? ''),
+      disabled: !overflow.value,
+      placement: 'top',
+      showAfter: 300
+    }, {
+      default: () => h('div', { class: 'ellipsis-cell', onMouseenter: handleEnter }, props.content)
+    })
+  }
+})
 
 const activeTab = ref('syscall')
 
 const diffData = ref(null)
 const loading = ref(true)
 const error = ref(null)
-const filterType = ref('modified')
+const symbolSearch = ref('')
+const statusFilter = ref('')
+const tableWidth = ref(800)
+const tableHeight = ref(400)
+const tableWrapperRef = ref(null)
+
+function updateTableSize() {
+  if (tableWrapperRef.value) {
+    tableWidth.value = tableWrapperRef.value.clientWidth
+    tableHeight.value = tableWrapperRef.value.clientHeight
+  }
+}
+
+let resizeObserver = null
 
 // 页面加载时获取数据
 onMounted(() => {
   loadData()
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => {
+      updateTableSize()
+    })
+    if (tableWrapperRef.value) {
+      resizeObserver.observe(tableWrapperRef.value)
+    }
+  } else {
+    updateTableSize()
+    window.addEventListener('resize', updateTableSize)
+  }
+})
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+  } else {
+    window.removeEventListener('resize', updateTableSize)
+  }
+})
+
+// 切换到 kernel tab 时重新计算表格尺寸
+watch(activeTab, (val) => {
+  if (val === 'kernel') {
+    nextTick(updateTableSize)
+  }
 })
 
 function loadData() {
@@ -53,46 +117,90 @@ const kernelSymbolData = computed(() => {
   return diffData.value.kernelSymbolsDiff
 })
 
-// 根据筛选类型获取内核符号
-const filteredKernelSymbols = computed(() => {
+// 合并所有内核符号（仅A有、仅B有、CRC冲突）
+const allKernelSymbols = computed(() => {
   const data = kernelSymbolData.value
   if (!data) return []
+  const rows = []
 
-  switch (filterType.value) {
-    case 'onlyInA':
-      return data.onlyInA || []
-    case 'onlyInB':
-      return data.onlyInB || []
-    case 'modified':
-      return data.modified || []
-    default:
-      return data.modified || []
-  }
+  // 仅 A 有
+  ;(data.onlyInA || []).forEach(s => {
+    rows.push({
+      name: s.name,
+      module: s.module,
+      crcInA: s.crc || '-',
+      crcInB: '-',
+      status: '仅A有'
+    })
+  })
+  // 仅 B 有
+  ;(data.onlyInB || []).forEach(s => {
+    rows.push({
+      name: s.name,
+      module: s.module,
+      crcInA: '-',
+      crcInB: s.crc || '-',
+      status: '仅B有'
+    })
+  })
+  // CRC 冲突
+  ;(data.modified || []).forEach(s => {
+    rows.push({
+      name: s.name,
+      module: s.module,
+      crcInA: s.crcInA || '-',
+      crcInB: s.crcInB || '-',
+      status: 'CRC冲突'
+    })
+  })
+
+  // 按符号名排序
+  rows.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  return rows
 })
 
-// 内核符号表格列定义
+// 筛选后的内核符号
+const filteredKernelSymbols = computed(() => {
+  let data = allKernelSymbols.value
+
+  // 按符号名搜索
+  if (symbolSearch.value) {
+    const search = symbolSearch.value.toLowerCase()
+    data = data.filter(row => row.name.toLowerCase().includes(search))
+  }
+
+  // 按状态筛选
+  if (statusFilter.value) {
+    data = data.filter(row => row.status === statusFilter.value)
+  }
+
+  return data
+})
+
+// 表格列定义
 const kernelSymbolColumns = [
-  { key: 'name', label: '符号名', width: '200' },
-  { key: 'module', label: '所属模块', width: '250' },
-  { key: 'crcInA', label: 'OS A CRC', width: '150' },
-  { key: 'crcInB', label: 'OS B CRC', width: '150' },
-  { key: 'status', label: '状态', width: '120' },
+  { key: 'name', dataKey: 'name', title: '符号名', width: 250 },
+  { key: 'module', dataKey: 'module', title: '所属模块', width: 300 },
+  { key: 'crcInA', dataKey: 'crcInA', title: 'OS A CRC', width: 150 },
+  { key: 'crcInB', dataKey: 'crcInB', title: 'OS B CRC', width: 150 },
+  { key: 'status', dataKey: 'status', title: '状态', width: 120 }
+]
+
+// 状态筛选选项
+const statusOptions = [
+  { label: '全部', value: '' },
+  { label: 'CRC冲突', value: 'CRC冲突' },
+  { label: '仅A有', value: '仅A有' },
+  { label: '仅B有', value: '仅B有' },
 ]
 
 // 行样式函数
 function getRowClass({ row }) {
-  if (row.crcInA && row.crcInB && row.crcInA !== row.crcInB) {
+  if (row.status === 'CRC冲突') {
     return 'crc-conflict-row'
   }
   return ''
 }
-
-// 筛选选项
-const filterOptions = [
-  { label: 'CRC 冲突', value: 'modified' },
-  { label: '仅 A 有', value: 'onlyInA' },
-  { label: '仅 B 有', value: 'onlyInB' },
-]
 
 // 跳转到指定标签页
 function goToTab(tab) {
@@ -145,55 +253,80 @@ defineExpose({
 
       <el-tab-pane label="Kernel Symbols" name="kernel">
         <div class="tab-content kernel-content">
-          <!-- 筛选器 -->
-          <div class="filter-bar">
-            <span>筛选: </span>
-            <el-select v-model="filterType" placeholder="请选择" style="width: 200px;">
-              <el-option
-                v-for="item in filterOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
-            <span style="margin-left: 20px;">当前显示: {{ filteredKernelSymbols.length }} 条</span>
-          </div>
-
-          <!-- 内核符号表格 - 使用 el-table-v2 虚拟化 -->
-          <div class="table-wrapper">
-            <el-table-v2
-              :columns="kernelSymbolColumns"
-              :data="filteredKernelSymbols"
-              :width="1200"
-              height="100%"
-              :row-height="40"
-              :row-class-name="getRowClass"
-              class="symbol-table"
-            >
-            <template #cell="{ column, rowData }">
-              <template v-if="column.key === 'name'">
-                {{ rowData.name }}
-              </template>
-              <template v-else-if="column.key === 'module'">
-                {{ rowData.module }}
-              </template>
-              <template v-else-if="column.key === 'crcInA'">
-                {{ rowData.crcInA || rowData.crc || '-' }}
-              </template>
-              <template v-else-if="column.key === 'crcInB'">
-                {{ rowData.crcInB || '-' }}
-              </template>
-              <template v-else-if="column.key === 'status'">
-                <el-tag v-if="rowData.crcInA !== rowData.crcInB" type="danger" size="small">
-                  CRC 冲突
-                </el-tag>
-                <el-tag v-else type="info" size="small">
-                  正常
-                </el-tag>
-              </template>
+          <el-card>
+            <template #header>
+              <div class="header-row">
+                <span>内核符号差异详情</span>
+                <span class="stats">共 {{ filteredKernelSymbols.length }} 条</span>
+              </div>
             </template>
-            </el-table-v2>
-          </div>
+
+            <!-- 搜索和筛选 -->
+            <div class="filter-bar">
+              <el-input
+                v-model="symbolSearch"
+                placeholder="搜索符号名..."
+                clearable
+                style="width: 300px;"
+              >
+                <template #prefix>
+                  <el-icon><Search /></el-icon>
+                </template>
+              </el-input>
+
+              <el-select
+                v-model="statusFilter"
+                placeholder="按状态筛选"
+                clearable
+                style="width: 150px; margin-left: 10px;"
+              >
+                <el-option
+                  v-for="item in statusOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </div>
+
+            <!-- 内核符号表格 -->
+            <div ref="tableWrapperRef" class="table-wrapper">
+              <el-table-v2
+                :columns="kernelSymbolColumns"
+                :data="filteredKernelSymbols"
+                :width="tableWidth"
+                :height="tableHeight"
+                :row-height="40"
+                :row-class-name="getRowClass"
+                class="symbol-table"
+              >
+                <template #cell="{ column, rowData }">
+                  <template v-if="column.key === 'status'">
+                    <el-tag
+                      v-if="rowData.status === 'CRC冲突'"
+                      type="danger"
+                      size="small"
+                    >
+                      {{ rowData.status }}
+                    </el-tag>
+                    <el-tag
+                      v-else-if="rowData.status === '仅A有' || rowData.status === '仅B有'"
+                      type="warning"
+                      size="small"
+                    >
+                      {{ rowData.status }}
+                    </el-tag>
+                    <el-tag v-else type="info" size="small">
+                      {{ rowData.status }}
+                    </el-tag>
+                  </template>
+                  <template v-else>
+                    <OverflowCell :content="String(rowData[column.dataKey] ?? '')" />
+                  </template>
+                </template>
+              </el-table-v2>
+            </div>
+          </el-card>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -259,21 +392,64 @@ defineExpose({
   min-height: 0;
 }
 
-.kernel-content .table-wrapper {
-  flex: 1;
+.kernel-content > .el-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
-  overflow: hidden;
 }
 
-.kernel-content .symbol-table {
-  height: 100%;
+.kernel-content > .el-card :deep(.el-card__body) {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stats {
+  font-size: 14px;
+  color: #666;
 }
 
 .filter-bar {
   margin-bottom: 15px;
-  padding: 10px;
-  background: #f5f7fa;
-  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.symbol-table {
+  flex: 1;
+}
+
+.table-wrapper :deep(.el-table-v2__empty) {
+  width: 100% !important;
+  background-color: #ffffff;
+}
+
+.table-wrapper :deep(.el-empty) {
+  width: 100%;
+}
+
+.table-wrapper :deep(.ellipsis-cell) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 }
 
 :deep(.crc-conflict-row) {
@@ -282,9 +458,5 @@ defineExpose({
 
 :deep(.el-table-v2__row) {
   cursor: pointer;
-}
-
-:deep(.el-table-v2__empty) {
-  background-color: #ffffff;
 }
 </style>
