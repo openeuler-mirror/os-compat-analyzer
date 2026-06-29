@@ -173,24 +173,25 @@ function sortMethod(a, b, col) {
       <el-table
         :data="filteredPackages"
         :default-sort="{ prop: 'name', order: 'ascending' }"
+        table-layout="fixed"
       >
-        <el-table-column prop="name" label="包名" width="250" sortable />
-        <el-table-column prop="arch" label="架构" width="100" />
+        <el-table-column prop="name" label="包名" min-width="250" sortable />
+        <el-table-column prop="arch" label="架构" min-width="100" />
         <el-table-column
           prop="versionA"
           label="OS A 版本"
-          width="200"
+          min-width="200"
           :sort-method="(a, b) => sortMethod(a, b, 'versionA')"
           sortable
         />
         <el-table-column
           prop="versionB"
           label="OS B 版本"
-          width="200"
+          min-width="200"
           :sort-method="(a, b) => sortMethod(a, b, 'versionB')"
           sortable
         />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="status" label="状态" min-width="100">
           <template #default="{ row }">
             <el-tag :type="row.statusType" size="small">
               {{ row.status }}
@@ -204,7 +205,7 @@ function sortMethod(a, b, col) {
 
 <style scoped>
 .rpm-page {
-  padding: 20px;
+  margin-top: 10px;
   height: 100%;
   box-sizing: border-box;
 }
