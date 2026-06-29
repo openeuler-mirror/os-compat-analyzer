@@ -109,6 +109,14 @@ func TestParseRPMPackages(t *testing.T) {
 				Name: "pkg1", Version: "1.0", Release: "el7", Arch: "x86_64",
 			},
 		},
+		{
+			name:      "release with os suffix stripped",
+			output:    "pkg2 2.51.0 5.oe2403sp3 x86_64\n",
+			wantCount: 1,
+			wantFirst: model.RPMPackage{
+				Name: "pkg2", Version: "2.51.0", Release: "5", Arch: "x86_64",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -125,6 +133,28 @@ func TestParseRPMPackages(t *testing.T) {
 				t.Errorf("first package = %+v, want %+v", packages[0], tt.wantFirst)
 			}
 		})
+	}
+}
+
+// TestNormalizeRPMRelease 测试 normalizeRPMRelease 函数对各种 release 的归一化。
+func TestNormalizeRPMRelease(t *testing.T) {
+	cases := []struct {
+		input string
+		want  string
+	}{
+		{"5.oe2403sp3", "5"},
+		{"5.oe2503", "5"},
+		{"10.el7", "10"},
+		{"el7", "el7"},
+		{"5", "5"},
+		{"", ""},
+	}
+
+	for _, c := range cases {
+		got := normalizeRPMRelease(c.input)
+		if got != c.want {
+			t.Errorf("normalizeRPMRelease(%q) = %q, want %q", c.input, got, c.want)
+		}
 	}
 }
 

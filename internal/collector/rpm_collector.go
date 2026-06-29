@@ -68,11 +68,21 @@ func parseRPMPackages(output string) ([]model.RPMPackage, error) {
 		pkg := model.RPMPackage{
 			Name:    fields[0],
 			Version: fields[1],
-			Release: fields[2],
+			Release: normalizeRPMRelease(fields[2]),
 			Arch:    fields[3],
 		}
 		packages = append(packages, pkg)
 	}
 
 	return packages, nil
+}
+
+// normalizeRPMRelease 去掉 RPM release 中的 OS 发行版后缀。
+// 例如 "5.oe2403sp3" 和 "5.oe2503" 都会归一化为 "5"，
+// 以便比较同一包在不同 OS 版本中的差异时忽略 OS 标签。
+func normalizeRPMRelease(release string) string {
+	if idx := strings.Index(release, "."); idx != -1 {
+		return release[:idx]
+	}
+	return release
 }
