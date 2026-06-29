@@ -111,8 +111,6 @@ func runCollect(cmd *cobra.Command, args []string) error {
 			if result.err != nil {
 				log.Printf("WARN: 系统调用采集失败: %v (将继续使用空列表)", result.err)
 				snapshot.Syscalls = []model.Syscall{}
-				// 添加警告标记到元数据
-				snapshot.Metadata.Name += " (非 Root 采集)"
 			} else {
 				snapshot.Syscalls = result.data.([]model.Syscall)
 				log.Printf("INFO: 采集到 %d 个系统调用", len(snapshot.Syscalls))
@@ -122,8 +120,6 @@ func runCollect(cmd *cobra.Command, args []string) error {
 			if result.err != nil {
 				log.Printf("WARN: 内核符号采集失败: %v (将继续使用空列表)", result.err)
 				snapshot.KernelSymbols = []model.KernelSymbol{}
-				// 添加警告标记到元数据
-				snapshot.Metadata.Name += " (非 Root 采集)"
 			} else {
 				snapshot.KernelSymbols = result.data.([]model.KernelSymbol)
 				log.Printf("INFO: 采集到 %d 个内核符号", len(snapshot.KernelSymbols))

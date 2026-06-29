@@ -58,41 +58,65 @@ func TestFindKey(t *testing.T) {
 func TestExtractValue(t *testing.T) {
 	tests := []struct {
 		name     string
-		line     string
+		text     string
+		key      string
 		expected string
 	}{
 		{
 			name:     "quoted value",
-			line:     "PRETTY_NAME=\"openEuler 20.03\"",
+			text:     "PRETTY_NAME=\"openEuler 20.03\"",
+			key:      "PRETTY_NAME",
 			expected: "openEuler 20.03",
 		},
 		{
 			name:     "unquoted value",
-			line:     "PRETTY_NAME=openEuler",
+			text:     "PRETTY_NAME=openEuler",
+			key:      "PRETTY_NAME",
 			expected: "openEuler",
 		},
 		{
 			name:     "no equals sign",
-			line:     "PRETTY_NAME",
+			text:     "PRETTY_NAME",
+			key:      "PRETTY_NAME",
 			expected: "",
 		},
 		{
 			name:     "empty value",
-			line:     "PRETTY_NAME=",
+			text:     "PRETTY_NAME=",
+			key:      "PRETTY_NAME",
 			expected: "",
 		},
 		{
 			name:     "value with special characters",
-			line:     "PRETTY_NAME=\"openEuler (LTS)\"",
+			text:     "PRETTY_NAME=\"openEuler (LTS)\"",
+			key:      "PRETTY_NAME",
 			expected: "openEuler (LTS)",
+		},
+		{
+			name:     "next line has equals sign",
+			text:     "PRETTY_NAME=\"openEuler 24.03 (LTS-SP3)\"\nANSI_COLOR=\"0;31\"",
+			key:      "PRETTY_NAME",
+			expected: "openEuler 24.03 (LTS-SP3)",
+		},
+		{
+			name:     "mismatch key",
+			text:     "NAME=\"Linux\"",
+			key:      "PRETTY_NAME",
+			expected: "",
+		},
+		{
+			name:     "empty key",
+			text:     "PRETTY_NAME=\"openEuler\"",
+			key:      "",
+			expected: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := extractValue(tt.line)
+			got := extractValue(tt.text, tt.key)
 			if got != tt.expected {
-				t.Errorf("extractValue(%q) = %q, want %q", tt.line, got, tt.expected)
+				t.Errorf("extractValue(%q, %q) = %q, want %q", tt.text, tt.key, got, tt.expected)
 			}
 		})
 	}
@@ -103,11 +127,13 @@ func TestCollectOSMetadataWithInputs(t *testing.T) {
 	tests := []struct {
 		name                 string
 		osRelease            string
-		procVersion          string
+		kernelVersion        string
 		architecture         string
+		currentUser          string
 		expectedName         string
 		expectedVersion      string
 		expectedArchitecture string
+		expectedUser         string
 	}{
 		{
 			name: "all fields present",
@@ -115,47 +141,55 @@ func TestCollectOSMetadataWithInputs(t *testing.T) {
 VERSION_ID="20.03"
 PRETTY_NAME="openEuler 20.03 (LTS)"
 `,
-			procVersion:          "4.19.90-2107.6.0.0100.oe1.x86_64\n",
+			kernelVersion:        "4.19.90-2107.6.0.0100.oe1.x86_64\n",
 			architecture:         "x86_64\n",
+			currentUser:          "root",
 			expectedName:         "openEuler 20.03 (LTS)",
 			expectedVersion:      "4.19.90-2107.6.0.0100.oe1.x86_64",
 			expectedArchitecture: "x86_64",
+			expectedUser:         "root",
 		},
 		{
 			name: "missing pretty name",
 			osRelease: `NAME="openEuler"
 VERSION_ID="20.03"
 `,
-			procVersion:          "5.10.0\n",
+			kernelVersion:        "5.10.0\n",
 			architecture:         "aarch64\n",
+			currentUser:          "admin",
 			expectedName:         "",
 			expectedVersion:      "5.10.0",
 			expectedArchitecture: "aarch64",
+			expectedUser:         "admin",
 		},
 		{
 			name:                 "empty inputs",
 			osRelease:            "",
-			procVersion:          "",
+			kernelVersion:        "",
 			architecture:         "",
+			currentUser:          "",
 			expectedName:         "",
 			expectedVersion:      "",
 			expectedArchitecture: "",
+			expectedUser:         "",
 		},
 		{
 			name: "whitespace trimming",
 			osRelease: `PRETTY_NAME="openEuler 20.03"
 `,
-			procVersion:          "  5.10.0-oe1  \n",
+			kernelVersion:        "  5.10.0-oe1  \n",
 			architecture:         "  x86_64  \n",
+			currentUser:          "  testuser  \n",
 			expectedName:         "openEuler 20.03",
 			expectedVersion:      "5.10.0-oe1",
 			expectedArchitecture: "x86_64",
+			expectedUser:         "testuser",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := collectOSMetadataWithInputs(tt.osRelease, tt.procVersion, tt.architecture)
+			got := collectOSMetadataWithInputs(tt.osRelease, tt.kernelVersion, tt.architecture, tt.currentUser)
 
 			if got.Name != tt.expectedName {
 				t.Errorf("Name = %q, want %q", got.Name, tt.expectedName)
@@ -165,6 +199,9 @@ VERSION_ID="20.03"
 			}
 			if got.Architecture != tt.expectedArchitecture {
 				t.Errorf("Architecture = %q, want %q", got.Architecture, tt.expectedArchitecture)
+			}
+			if got.User != tt.expectedUser {
+				t.Errorf("User = %q, want %q", got.User, tt.expectedUser)
 			}
 			if got.CollectedAt.IsZero() {
 				t.Error("CollectedAt should not be zero")
@@ -198,7 +235,7 @@ PRETTY_NAME="Correct"
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := collectOSMetadataWithInputs(tt.osRelease, "", "")
+			got := collectOSMetadataWithInputs(tt.osRelease, "", "", "")
 			if got.Name != tt.expectedName {
 				t.Errorf("Name = %q, want %q", got.Name, tt.expectedName)
 			}
