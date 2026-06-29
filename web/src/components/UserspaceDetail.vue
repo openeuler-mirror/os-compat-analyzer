@@ -4,7 +4,6 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 const diffData = ref(null)
 const loading = ref(true)
 const selectedNode = ref(null)
-const filterType = ref('modified')
 const tableWidth = ref(800)
 const tableHeight = ref(400)
 const tableWrapperRef = ref(null)
@@ -95,24 +94,42 @@ const currentSymbolData = computed(() => {
   return diffData.value.userspaceSymbolsDiff.bySoPath[selectedNode.value] || { onlyInA: [], onlyInB: [], modified: [] }
 })
 
-// 根据筛选类型获取符号
+// 合并所有差异符号，按状态分组后合并排序
 const filteredSymbols = computed(() => {
   const data = currentSymbolData.value
-  switch (filterType.value) {
-    case 'onlyInA':
-      return (data.onlyInA || []).map(s => ({ ...s, status: '仅A有' }))
-    case 'onlyInB':
-      return (data.onlyInB || []).map(s => ({ ...s, status: '仅B有' }))
-    case 'modified':
-      return (data.modified || []).map(s => ({
-        symbolName: s.symbolName,
-        versionInA: s.versionInA,
-        versionInB: s.versionInB,
-        status: isVersionDowngrade(s.versionInA, s.versionInB) ? '版本降级' : '版本变化'
-      }))
-    default:
-      return []
-  }
+  const rows = []
+
+  // 仅 A 有
+  ;(data.onlyInA || []).forEach(s => {
+    rows.push({
+      symbolName: s.symbolName || s.SymbolName,
+      versionInA: s.symbolVersion || s.SymbolVersion || '-',
+      versionInB: '-',
+      status: '仅A有'
+    })
+  })
+  // 仅 B 有
+  ;(data.onlyInB || []).forEach(s => {
+    rows.push({
+      symbolName: s.symbolName || s.SymbolName,
+      versionInA: '-',
+      versionInB: s.symbolVersion || s.SymbolVersion || '-',
+      status: '仅B有'
+    })
+  })
+  // 版本变化
+  ;(data.modified || []).forEach(s => {
+    rows.push({
+      symbolName: s.symbolName,
+      versionInA: s.versionInA,
+      versionInB: s.versionInB,
+      status: isVersionDowngrade(s.versionInA, s.versionInB) ? '版本降级' : '版本变化'
+    })
+  })
+
+  // 按符号名排序，保证输出顺序一致
+  rows.sort((a, b) => (a.symbolName || '').localeCompare(b.symbolName || ''))
+  return rows
 })
 
 function isVersionDowngrade(verA, verB) {
@@ -127,13 +144,6 @@ function isVersionDowngrade(verA, verB) {
 function handleNodeClick(node) {
   selectedNode.value = node.path
 }
-
-// 筛选选项
-const filterOptions = [
-  { label: '版本变化', value: 'modified' },
-  { label: '仅 A 有', value: 'onlyInA' },
-  { label: '仅 B 有', value: 'onlyInB' },
-]
 </script>
 
 <template>
@@ -176,27 +186,14 @@ const filterOptions = [
             <span>符号差异 - {{ selectedNode?.split('/').pop() }}</span>
           </template>
 
-          <!-- 筛选器 -->
-          <div class="filter-bar">
-            <span>筛选: </span>
-            <el-select v-model="filterType" placeholder="请选择" style="width: 200px;">
-              <el-option
-                v-for="item in filterOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
-          </div>
-
           <!-- 符号表格 -->
           <div ref="tableWrapperRef" class="table-wrapper">
             <el-table-v2
               :columns="[
-                { key: 'symbolName', label: '符号名', width: 250 },
-                { key: 'versionInA', label: 'OS A 版本', width: 200 },
-                { key: 'versionInB', label: 'OS B 版本', width: 200 },
-                { key: 'status', label: '状态', width: 150 }
+                { key: 'symbolName', dataKey: 'symbolName', title: '符号名', width: 250 },
+                { key: 'versionInA', dataKey: 'versionInA', title: 'OS A 版本', width: 200 },
+                { key: 'versionInB', dataKey: 'versionInB', title: 'OS B 版本', width: 200 },
+                { key: 'status', dataKey: 'status', title: '状态', width: 150 }
               ]"
               :data="filteredSymbols"
               :width="tableWidth"
@@ -309,13 +306,5 @@ const filterOptions = [
 
 .tree-badge {
   margin-left: 10px;
-}
-
-.filter-bar {
-  margin-bottom: 15px;
-  padding: 10px;
-  background: #f5f7fa;
-  border-radius: 4px;
-  flex-shrink: 0;
 }
 </style>
