@@ -122,7 +122,19 @@ func runCollect(cmd *cobra.Command, args []string) error {
 				snapshot.KernelSymbols = []model.KernelSymbol{}
 			} else {
 				snapshot.KernelSymbols = result.data.([]model.KernelSymbol)
-				log.Printf("INFO: 采集到 %d 个内核符号", len(snapshot.KernelSymbols))
+				// 检查是否使用了 kallsyms fallback（无 CRC 值）
+				hasCRC := false
+				for _, s := range snapshot.KernelSymbols {
+					if s.CRC != "" {
+						hasCRC = true
+						break
+					}
+				}
+				if hasCRC {
+					log.Printf("INFO: 采集到 %d 个内核符号 (来源: Module.symvers)", len(snapshot.KernelSymbols))
+				} else {
+					log.Printf("INFO: 采集到 %d 个内核符号 (来源: /proc/kallsyms, 无 CRC 值)", len(snapshot.KernelSymbols))
+				}
 			}
 		}
 
